@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古牛量化分析系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            min-height: 100vh;
+        }
+
+        /* ===== Header ===== */
+        header {
+            background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+            border-bottom: 1px solid #21262d;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-size: 28px;
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        header span {
+            font-size: 12px;
+            color: #7d8590;
+            background: #21262d;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        /* ===== Main Layout ===== */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* ===== Search Section ===== */
+        .search-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+
+        .search-box h2 {
+            font-size: 15px;
+            color: #7d8590;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-row input {
+            flex: 1;
+            padding: 14px 18px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            color: #e6edf3;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-row input:focus {
+            border-color: #58a6ff;
+        }
+
+        .search-row input::placeholder {
+            color: #484f58;
+        }
+
+        .search-row button {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #238636, #2ea043);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        .search-row button:hover {
+            opacity: 0.9;
+        }
+
+        .search-row button:active {
+            transform: scale(0.98);
+        }
+
+        .search-row button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .market-tags {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .market-tag {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: #21262d;
+            color: #7d8590;
+            border: 1px solid #30363d;
+        }
+
+        .market-tag span {
+            color: #58a6ff;
+            font-weight: 600;
+        }
+
+        /* ===== Loading ===== */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 48px;
+            color: #7d8590;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #30363d;
+            border-top-color: #58a6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== Stock Header ===== */
+        .stock-header {
+            display: none;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .stock-header.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stock-header .code-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .stock-header .code {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        .stock-header .market-badge {
+            font-size: 12px;
+            padding: 3px 10px;
+            background: #1f6feb;
+            color: #fff;
+            border-radius: 6px;
+        }
+
+        .stock-header .price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+        }
+
+        .stock-header .price {
+            font-size: 32px;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        .stock-header .date {
+            font-size: 13px;
+            color: #7d8590;
+        }
+
+        .overall-signal {
+            display: inline-block;
+            margin-top: 14px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .overall-signal.green { background: #0d2818; color: #3fb950; border: 1px solid #238636; }
+        .overall-signal.orange { background: #1c1400; color: #d29922; border: 1px solid #9e6a03; }
+        .overall-signal.red { background: #240d0d; color: #f85149; border: 1px solid #da3633; }
+
+        /* ===== Strategy Cards ===== */
+        .strategy-grid {
+            display: none;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.5s ease 0.1s both;
+        }
+
+        .strategy-grid.show {
+            display: grid;
+        }
+
+        @media (max-width: 768px) {
+            .strategy-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .strategy-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .strategy-card-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .strategy-card-header .title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+
+        .strategy-card-header .score {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .strategy-card-header .score.green { color: #3fb950; }
+        .strategy-card-header .score.orange { color: #d29922; }
+        .strategy-card-header .score.red { color: #f85149; }
+
+        .signal-badge {
+            display: inline-block;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            margin: 12px 0 0 20px;
+            font-weight: 600;
+        }
+
+        .signal-badge.green { background: #0d2818; color: #3fb950; }
+        .signal-badge.orange { background: #1c1400; color: #d29922; }
+        .signal-badge.red { background: #240d0d; color: #f85149; }
+
+        .checklist {
+            padding: 12px 20px;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid #21262d;
+            font-size: 13px;
+        }
+
+        .check-item:last-child {
+            border-bottom: none;
+        }
+
+        .check-icon {
+            font-size: 14px;
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        .check-icon.pass { color: #3fb950; }
+        .check-icon.fail { color: #f85149; }
+
+        .check-text {
+            flex: 1;
+            color: #c9d1d9;
+        }
+
+        .check-value {
+            font-size: 11px;
+            color: #7d8590;
+            margin-top: 2px;
+            font-family: "Menlo", "Consolas", monospace;
+        }
+
+        /* ===== Fundamentals ===== */
+        .fundamentals {
+            display: none;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.5s ease 0.2s both;
+        }
+
+        .fundamentals.show {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 13px;
+            color: #7d8590;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .fund-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .fund-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .fund-item {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .fund-item .label {
+            font-size: 11px;
+            color: #7d8590;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fund-item .value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        .fund-item .value.good { color: #3fb950; }
+        .fund-item .value.warn { color: #d29922; }
+        .fund-item .value.bad { color: #f85149; }
+
+        /* ===== Chart ===== */
+        .chart-section {
+            display: none;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.5s ease 0.3s both;
+        }
+
+        .chart-section.show {
+            display: block;
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .chart-tab {
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #21262d;
+            color: #7d8590;
+            border: 1px solid #30363d;
+            transition: all 0.2s;
+        }
+
+        .chart-tab.active {
+            background: #1f6feb;
+            color: #fff;
+            border-color: #1f6feb;
+        }
+
+        #chart {
+            height: 300px;
+            background: #0d1117;
+            border-radius: 8px;
+        }
+
+        /* ===== Error ===== */
+        .error-msg {
+            display: none;
+            background: #240d0d;
+            border: 1px solid #da3633;
+            border-radius: 12px;
+            padding: 20px 28px;
+            color: #f85149;
+            margin-bottom: 24px;
+        }
+
+        .error-msg.show {
+            display: block;
+        }
+
+        /* ===== Tips ===== */
+        .tips {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 28px;
+            margin-top: 8px;
+        }
+
+        .tips .section-title {
+            margin-bottom: 12px;
+        }
+
+        .tips ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .tips ul { grid-template-columns: 1fr; }
+        }
+
+        .tips li {
+            font-size: 13px;
+            color: #7d8590;
+            padding: 4px 0;
+        }
+
+        .tips li::before {
+            content: "• ";
+            color: #58a6ff;
+            margin-right: 4px;
+        }
+
+        /* ===== Total Score Bar ===== */
+        .total-score-bar {
+            display: none;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px 28px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .total-score-bar.show {
+            display: block;
+        }
+
+        .score-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #7d8590;
+            white-space: nowrap;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 10px;
+            background: #21262d;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.8s ease;
+        }
+
+        .bar-fill.green { background: linear-gradient(90deg, #238636, #3fb950); }
+        .bar-fill.orange { background: linear-gradient(90deg, #9e6a03, #d29922); }
+        .bar-fill.red { background: linear-gradient(90deg, #da3633, #f85149); }
+
+        .score-num {
+            font-size: 22px;
+            font-weight: 700;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .score-num.green { color: #3fb950; }
+        .score-num.orange { color: #d29922; }
+        .score-num.red { color: #f85149; }
+
+        /* ===== Disclaimer ===== */
+        .disclaimer {
+            text-align: center;
+            font-size: 11px;
+            color: #484f58;
+            margin-top: 32px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">🐂</div>
+    <div>
+        <h1>古牛量化分析系统</h1>
+        <span>v1.0 — 均线 · 价值 · 动量</span>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- Search -->
+    <div class="search-box">
+        <h2>🔍 输入股票代码</h2>
+        <div class="search-row">
+            <input type="text" id="stockCode" placeholder="如：AAPL / 600519 / 00700 / NVDA" />
+            <button id="analyzeBtn" onclick="analyze()">开始分析</button>
+            <button id="backtestBtn" onclick="runBacktest()" style="background:linear-gradient(135deg,#1f6feb,#388bfd);">历史回测</button>
+        </div>
+        <div class="market-tags">
+            <div class="market-tag">美股 <span>NVDA · AAPL · GOOG</span></div>
+            <div class="market-tag">A股 <span>600519 · 000001</span></div>
+            <div class="market-tag">港股 <span>00700 · 09992 · 00100</span></div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>正在获取数据并分析...</div>
+    </div>
+
+    <!-- Stock Header -->
+    <div class="stock-header" id="stockHeader">
+        <div class="code-row">
+            <span class="code" id="displayCode">—</span>
+            <span class="market-badge" id="displayMarket">—</span>
+        </div>
+        <div class="price-row">
+            <span class="price" id="displayPrice">—</span>
+            <span class="date" id="displayDate">—</span>
+        </div>
+        <div class="overall-signal" id="overallSignal"></div>
+    </div>
+
+    <!-- Total Score -->
+    <div class="total-score-bar" id="scoreBar">
+        <div class="score-bar-row">
+            <span class="score-label">综合评分</span>
+            <div class="bar-track">
+                <div class="bar-fill" id="barFill" style="width:0%"></div>
+            </div>
+            <span class="score-num" id="scoreNum">0</span>
+        </div>
+    </div>
+
+    <!-- Strategy Cards -->
+    <div class="strategy-grid" id="strategyGrid"></div>
+
+    <!-- Fundamentals -->
+    <div class="fundamentals" id="fundamentals">
+        <div class="section-title">📊 基本面指标</div>
+        <div class="fund-grid" id="fundGrid"></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-section" id="chartSection">
+        <div class="section-title">📈 近期走势</div>
+        <div class="chart-tabs">
+            <div class="chart-tab active" onclick="switchChart('ma')">均线策略</div>
+            <div class="chart-tab" onclick="switchChart('momentum')">动量反转</div>
+        </div>
+        <div id="chart"></div>
+    </div>
+
+    <!-- Backtest -->
+    <div class="chart-section" id="backtestSection">
+        <div class="section-title">🧪 历史回测（策略 vs 买入持有）</div>
+        <div id="btPeriod" style="font-size:12px;color:#7d8590;margin-bottom:16px;"></div>
+        <div class="fund-grid" id="btMetrics" style="margin-bottom:20px;"></div>
+        <div id="btChart" style="height:320px;background:#0d1117;border-radius:8px;"></div>
+        <div style="font-size:11px;color:#7d8590;margin-top:12px;line-height:1.6;">
+            说明：第 i 日收盘按综合评分决策，次日开盘成交，每笔扣 0.1% 成本（手续费+滑点）。
+            综合评分 = 均线 + 动量加权（价值策略依赖实时基本面，无历史序列，不参与回测）。
+            回测结果基于历史，不代表未来表现。
+        </div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips">
+        <div class="section-title">💡 古牛小贴士</div>
+        <ul>
+            <li>均线金叉 + 成交量放大 = 强趋势信号</li>
+            <li>RSI &lt; 35 + 布林带触底 = 超跌反弹机会</li>
+            <li>PE &lt; 30 + ROE &gt; 15% = 价值低估信号</li>
+            <li>三个策略共振 = 最佳买入时机</li>
+            <li>综合评分 65+ 才考虑买入</li>
+            <li>实盘前先模拟盘验证 3 个月</li>
+        </ul>
+    </div>
+
+    <div class="disclaimer">
+        本工具仅供辅助参考，不构成投资建议。市场有风险，投资需谨慎。<br>
+        古牛量化 · 量化不保证盈利，只提高决策质量。
+    </div>
+
+</div>
+
+<!-- Plotly CDN -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+<script>
+    let currentChartData = null;
+    let currentChartType = 'ma';
+
+    // 挂载到 window，让 onclick 能调用
+    window.analyze = async function() {
+        const code = document.getElementById('stockCode').value.trim();
+        if (!code) {
+            showError('请先输入股票代码');
+            return;
+        }
+
+        const btn = document.getElementById('analyzeBtn');
+        btn.disabled = true;
+        btn.textContent = '分析中...';
+        hideAll();
+        show('loading');
+
+        try {
+            const resp = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+            const data = await resp.json();
+            console.log('收到数据:', data);
+
+            if (!resp.ok || data.error) {
+                const msg = data.error || `服务器错误 (${resp.status})`;
+                showError(msg);
+                return;
+            }
+
+            console.log('调用 renderResult');
+            renderResult(data);
+            console.log('renderResult 完成');
+        } catch (e) {
+            console.error('错误:', e);
+            showError('无法连接后端服务，请确认已运行「bash start.sh」（端口 5888）');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '开始分析';
+        }
+    }
+
+    function hideAll() {
+        ['errorMsg', 'stockHeader', 'scoreBar', 'strategyGrid',
+         'fundamentals', 'chartSection', 'backtestSection', 'loading'].forEach(id => {
+            document.getElementById(id).classList.remove('show');
+        });
+    }
+
+    function show(id) {
+        document.getElementById(id).classList.add('show');
+    }
+
+    function showError(msg) {
+        hideAll();  // 先清空所有（包含 loading）
+        document.getElementById('errorMsg').textContent = msg;
+        show('errorMsg');  // 再显示错误信息
+    }
+
+    function renderResult(data) {
+        hideAll();  // 先隐藏 loading
+        // Header
+        document.getElementById('displayCode').textContent = data.code;
+        document.getElementById('displayMarket').textContent = data.market;
+        document.getElementById('displayPrice').textContent = data.latest_price || '—';
+        document.getElementById('displayDate').textContent = data.latest_date ? `数据日期: ${data.latest_date}` : '';
+        const ov = document.getElementById('overallSignal');
+        ov.textContent = data.overall;
+        ov.className = `overall-signal ${data.overall_color}`;
+        show('stockHeader');
+
+        // Score bar
+        const total = data.total_score || 0;
+        let barColor = 'red';
+        if (total >= 65) barColor = 'green';
+        else if (total >= 40) barColor = 'orange';
+        document.getElementById('barFill').className = `bar-fill ${barColor}`;
+        document.getElementById('barFill').style.width = total + '%';
+        const sn = document.getElementById('scoreNum');
+        sn.className = `score-num ${barColor}`;
+        sn.textContent = total;
+        show('scoreBar');
+
+        // Strategy cards
+        const grid = document.getElementById('strategyGrid');
+        grid.innerHTML = '';
+        (data.strategies || []).forEach(s => {
+            const card = document.createElement('div');
+            card.className = 'strategy-card';
+            let checks = '';
+            (s.detail || []).forEach(item => {
+                const icon = item.pass ? '✅' : '❌';
+                const cls = item.pass ? 'pass' : 'fail';
+                checks += `
+                    <div class="check-item">
+                        <span class="check-icon ${cls}">${icon}</span>
+                        <div>
+                            <div class="check-text">${item.name}</div>
+                            ${item.value ? `<div class="check-value">${item.value}</div>` : ''}
+                        </div>
+                    </div>`;
+            });
+
+            let fundHtml = '';
+            if (s.fundamentals) {
+                const fb = s.fundamentals;
+                fundHtml = `
+                    <div class="fundamentals" style="border:none; padding: 12px 20px 0;">
+                        <div class="section-title" style="margin-bottom:10px;">📊 基本面</div>
+                        <div class="fund-grid" style="grid-template-columns:repeat(2,1fr);">
+                            <div class="fund-item"><div class="label">PE</div><div class="value">${fb.PE || 'N/A'}</div></div>
+                            <div class="fund-item"><div class="label">PB</div><div class="value">${fb.PB || 'N/A'}</div></div>
+                            <div class="fund-item"><div class="label">ROE</div><div class="value">${fb.ROE || 'N/A'}</div></div>
+                        </div>
+                    </div>`;
+            }
+
+            card.innerHTML = `
+                <div class="strategy-card-header">
+                    <span class="title">${s.strategy}</span>
+                    <span class="score ${s.color}">${s.score}</span>
+                </div>
+                <div class="signal-badge ${s.color}">${s.signal}</div>
+                ${checks}
+                ${fundHtml}
+            `;
+            grid.appendChild(card);
+        });
+        show('strategyGrid');
+
+        // Fundamentals extra
+        const maStrategy = data.strategies?.find(s => s.strategy === '均线金叉策略');
+        const valStrategy = data.strategies?.find(s => s.strategy === '低估值价值策略');
+        if (valStrategy?.fundamentals) {
+            const fb = valStrategy.fundamentals;
+            const getClass = (v, good, warn) => {
+                if (!v || v === 'N/A') return '';
+                const n = parseFloat(v);
+                if (!isNaN(n)) {
+                    if (n < good) return 'good';
+                    if (n > warn) return 'bad';
+                    return 'warn';
+                }
+                return '';
+            };
+            document.getElementById('fundGrid').innerHTML = `
+                <div class="fund-item"><div class="label">市盈率 PE</div><div class="value ${getClass(fb.PE, 30, 50)}">${fb.PE || 'N/A'}</div></div>
+                <div class="fund-item"><div class="label">市净率 PB</div><div class="value ${getClass(fb.PB, 5, 10)}">${fb.PB || 'N/A'}</div></div>
+                <div class="fund-item"><div class="label">净资产收益率</div><div class="value ${parseFloat(fb.ROE) > 15 ? 'good' : ''}">${fb.ROE || 'N/A'}</div></div>
+                <div class="fund-item"><div class="label">综合评分</div><div class="value ${barColor}">${total}</div></div>
+            `;
+            show('fundamentals');
+        }
+
+        // Store chart data
+        currentChartData = data.strategies;
+        currentChartType = 'ma';
+        renderChart(data.strategies, 'ma');
+        show('chartSection');
+    }
+
+    function switchChart(type) {
+        currentChartType = type;
+        document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        renderChart(currentChartData, type);
+    }
+
+    function renderChart(strategies, type) {
+        if (!strategies) return;
+        const s = type === 'ma'
+            ? strategies.find(s => s.strategy === '均线金叉策略')
+            : strategies.find(s => s.strategy === '动量反转策略');
+        if (!s || !s.chart) return;
+
+        const chart = s.chart;
+        const dates = chart.date || [];
+        const close = chart.close || [];
+        const traces = [];
+
+        if (type === 'ma') {
+            traces.push({
+                x: dates, y: close,
+                type: 'scatter', mode: 'lines',
+                name: '收盘价', line: { color: '#58a6ff', width: 2 }
+            });
+            ['MA5', 'MA20', 'MA60'].forEach((key, i) => {
+                const colors = ['#f78166', '#d29922', '#3fb950'];
+                traces.push({
+                    x: dates, y: chart[key.toLowerCase()] || [],
+                    type: 'scatter', mode: 'lines',
+                    name: key,
+                    line: { color: colors[i], width: 1.5, dash: i === 2 ? 'dot' : 'solid' }
+                });
+            });
+        } else {
+            traces.push({
+                x: dates, y: close,
+                type: 'scatter', mode: 'lines',
+                name: '收盘价', line: { color: '#58a6ff', width: 2 }
+            });
+            ['BB_upper', 'BB_mid', 'BB_lower'].forEach((key, i) => {
+                const colors = ['#f85149', '#d29922', '#3fb950'];
+                traces.push({
+                    x: dates, y: chart[key] || [],
+                    type: 'scatter', mode: 'lines',
+                    name: key === 'BB_upper' ? '布林上轨' : key === 'BB_mid' ? '布林中轨' : '布林下轨',
+                    line: { color: colors[i], width: 1.2, dash: 'dash' }
+                });
+            });
+        }
+
+        Plotly.newPlot('chart', traces, {
+            paper_bgcolor: '#0d1117',
+            plot_bgcolor: '#0d1117',
+            font: { color: '#7d8590', family: 'sans-serif' },
+            margin: { t: 10, r: 10, b: 40, l: 50 },
+            xaxis: {
+                gridcolor: '#21262d',
+                linecolor: '#30363d',
+                ticksuffix: '',
+                showspikes: false
+            },
+            yaxis: {
+                gridcolor: '#21262d',
+                linecolor: '#30363d',
+                title: { text: '价格', standoff: 10 }
+            },
+            legend: {
+                orientation: 'h', x: 0, y: 1.12,
+                bgcolor: 'rgba(0,0,0,0)',
+                font: { color: '#7d8590' }
+            },
+            hovermode: 'x unified'
+        }, { responsive: true });
+    }
+
+    // ===== 历史回测 =====
+    window.runBacktest = async function() {
+        const code = document.getElementById('stockCode').value.trim();
+        if (!code) { showError('请先输入股票代码'); return; }
+
+        const btn = document.getElementById('backtestBtn');
+        btn.disabled = true; btn.textContent = '回测中...';
+        hideAll(); show('loading');
+        document.querySelector('#loading div:last-child').textContent = '正在拉取历史数据并回测...';
+
+        try {
+            const resp = await fetch('/api/backtest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, days: 600 })
+            });
+            const data = await resp.json();
+            if (!resp.ok || data.error) {
+                showError(data.error || `服务器错误 (${resp.status})`);
+                return;
+            }
+            renderBacktest(data);
+        } catch (e) {
+            showError('无法连接后端服务，请确认已运行 start.bat（端口 5888）');
+        } finally {
+            btn.disabled = false; btn.textContent = '历史回测';
+        }
+    }
+
+    function renderBacktest(data) {
+        hideAll();
+        const m = data.metrics, b = data.benchmark;
+        document.getElementById('btPeriod').textContent =
+            `${data.code} · ${data.market} · 回测区间 ${data.period.start} ~ ${data.period.end}（${data.period.days} 个交易日）`;
+
+        const sign = v => (v > 0 ? '+' : '') + v;
+        const cls = v => v > 0 ? 'good' : (v < 0 ? 'bad' : '');
+        const ddCls = v => v <= -20 ? 'bad' : (v <= -10 ? 'warn' : '');
+        document.getElementById('btMetrics').innerHTML = `
+            <div class="fund-item"><div class="label">策略总收益</div><div class="value ${cls(m.total_return)}">${sign(m.total_return)}%</div></div>
+            <div class="fund-item"><div class="label">年化收益</div><div class="value ${cls(m.annual_return)}">${sign(m.annual_return)}%</div></div>
+            <div class="fund-item"><div class="label">最大回撤</div><div class="value ${ddCls(m.max_drawdown)}">${m.max_drawdown}%</div></div>
+            <div class="fund-item"><div class="label">夏普比率</div><div class="value ${m.sharpe>1?'good':(m.sharpe<0?'bad':'')}">${m.sharpe}</div></div>
+            <div class="fund-item"><div class="label">交易次数</div><div class="value">${m.n_trades}</div></div>
+            <div class="fund-item"><div class="label">胜率</div><div class="value ${m.win_rate>=50?'good':''}">${m.win_rate}%</div></div>
+            <div class="fund-item"><div class="label">买入持有总收益</div><div class="value ${cls(b.total_return)}">${sign(b.total_return)}%</div></div>
+            <div class="fund-item"><div class="label">买入持有回撤</div><div class="value ${ddCls(b.max_drawdown)}">${b.max_drawdown}%</div></div>
+        `;
+        show('backtestSection');
+
+        const c = data.curve;
+        Plotly.newPlot('btChart', [
+            { x: c.date, y: c.strategy, type: 'scatter', mode: 'lines',
+              name: '策略净值', line: { color: '#3fb950', width: 2 } },
+            { x: c.date, y: c.benchmark, type: 'scatter', mode: 'lines',
+              name: '买入持有', line: { color: '#7d8590', width: 1.5, dash: 'dot' } }
+        ], {
+            paper_bgcolor: '#0d1117', plot_bgcolor: '#0d1117',
+            font: { color: '#7d8590', family: 'sans-serif' },
+            margin: { t: 10, r: 10, b: 40, l: 50 },
+            xaxis: { gridcolor: '#21262d', linecolor: '#30363d' },
+            yaxis: { gridcolor: '#21262d', linecolor: '#30363d', title: { text: '净值（起点1.0）', standoff: 10 } },
+            legend: { orientation: 'h', x: 0, y: 1.12, bgcolor: 'rgba(0,0,0,0)' },
+            hovermode: 'x unified'
+        }, { responsive: true });
+    }
+
+    // DOM 加载后绑定 Enter 键
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('stockCode').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') window.analyze();
+        });
+    });
+</script>
+
+</body>
+</html>

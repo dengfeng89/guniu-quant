@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime / logs
+server.log
+server.err
+server.pid
+
+# Local cache & generated data
+.cache/
+scan_results.json
+
+# Env
+.env
